@@ -150,7 +150,7 @@ def run_svm(data, truth, int_zs, label, colors):
 
     names = [i + " - " + j for i, j in colors]
 
-    f_importances(clf.coef_, names, "highz", label=label)
+    # f_importances(clf.coef_, names, "highz", label=label)
 
     # ===================== Redshift binning =====================
 
@@ -204,7 +204,7 @@ def run_svm(data, truth, int_zs, label, colors):
 
     plt.close()
 
-    f_importances(clf.coef_, names, "redshift", label=label)
+    # f_importances(clf.coef_, names, "redshift", label=label)
 
     # reducer = umap.UMAP()
     # embedding = reducer.fit_transform(data)
@@ -239,24 +239,24 @@ def run_svm(data, truth, int_zs, label, colors):
     # plt.close()
 
 
-def f_importances(coef, names, class_type, label):
-    """ https://stackoverflow.com/questions/41592661/
-        determining-the-most-contributing-features-for-svm
-        -classifier-in-sklearn """
-
-    imp = coef
-    imp, names = zip(*sorted(list(zip(imp, names))))
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-
-    ax.barh(range(len(imp)), imp[::-1], align='center')
-    ax.set_yticks(range(len(imp)), names[::-1])
-
-    fig.savefig("plots/feature_importance_type%s_%s.png" % (class_type, label),
-                bbox_inches="tight")
-
-    plt.close(fig)
+# def f_importances(coef, names, class_type, label):
+#     """ https://stackoverflow.com/questions/41592661/
+#         determining-the-most-contributing-features-for-svm
+#         -classifier-in-sklearn """
+#
+#     imp = coef
+#     imp, names = zip(*sorted(list(zip(imp, names))))
+#
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111)
+#
+#     ax.barh(range(len(imp)), imp[::-1], align='center')
+#     ax.set_yticks(range(len(imp)), names[::-1])
+#
+#     fig.savefig("plots/feature_importance_type%s_%s.png" % (class_type, label),
+#                 bbox_inches="tight")
+#
+#     plt.close(fig)
 
 # ===================== Euclid Catalogue =====================
 

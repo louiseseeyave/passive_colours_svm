@@ -31,6 +31,7 @@ def get_data(color_set, path, colors, noise_std, replicate=1):
     print("Redshift truth", np.unique(int_zs, return_counts=True))
 
     # Define the truth array (z > 5)
+    print(ngal, zs.shape, ngal *replicate)
     truth = np.zeros(ngal * replicate)
     truth[zs >= 5] = 1
     print("Galaxy truth", np.unique(truth, return_counts=True))

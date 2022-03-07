@@ -244,13 +244,13 @@ colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
               ('Euclid_Y', 'Euclid_J'), ('Euclid_J', 'Euclid_H'))}
 
 # Which color set are we running with?
-# color_set = int(sys.argv[1])
-# noise = [0, 0.05, 0.1, 0.5, 1][int(sys.argv[2])]
-# replicate = int(sys.argv[3])
+color_set = int(sys.argv[1])
+noise = [0, 0.05, 0.1, 0.5, 1][int(sys.argv[2])]
+replicate = int(sys.argv[3])
 
-color_set = 0
-noise = [0, 0.05, 0.1, 0.5, 1][1]
-replicate = 2
+if noise == 0 and replicate > 1:
+    print("Pointless to regenerate the same points without noise")
+    replicate = 1
 
 # Define the colors data set
 data, truth, int_zs = get_data(color_set, path, colors,

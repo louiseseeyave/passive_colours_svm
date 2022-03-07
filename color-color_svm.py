@@ -146,8 +146,8 @@ def run_svm(data, truth, int_zs, label):
     int_zs = int_zs[int_zs >= 5]
 
     # Split into training and validation
-    X_train, X_test, y_train, y_test = train_test_split(data[int_zs >= 5, :],
-                                                        int_zs[int_zs >= 5],
+    X_train, X_test, y_train, y_test = train_test_split(data,
+                                                        int_zs,
                                                         test_size=0.3,
                                                         random_state=42)
 

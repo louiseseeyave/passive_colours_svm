@@ -31,7 +31,7 @@ def get_data(color_set, path, colors, noise_std, replicate=1):
     print("Redshift truth", np.unique(int_zs, return_counts=True))
 
     # Define the truth array (z > 5)
-    print(ngal, zs.shape, ngal *replicate)
+    print(ngal, zs.shape, ngal * replicate)
     truth = np.zeros(ngal * replicate)
     truth[zs >= 5] = 1
     print("Galaxy truth", np.unique(truth, return_counts=True))
@@ -241,7 +241,7 @@ colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
 # Which color set are we running with?
 color_set = int(sys.argv[1])
 noise = [0, 0.05, 0.1, 0.5, 1][int(sys.argv[2])]
-replicate = int(sys.argv[2])
+replicate = int(sys.argv[3])
 
 # Define the colors data set
 data, truth, int_zs = get_data(color_set, path, colors,

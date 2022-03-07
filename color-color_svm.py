@@ -143,7 +143,7 @@ def run_svm(data, truth, int_zs, label):
     # Remove low redshift data to emulate a hierarchical approach with
     # perfect high redshift classification
     data = data[int_zs >= 5, :]
-    int_zs = int_zs[int_zs >= 5, :]
+    int_zs = int_zs[int_zs >= 5]
 
     # Split into training and validation
     X_train, X_test, y_train, y_test = train_test_split(data[int_zs >= 5, :],

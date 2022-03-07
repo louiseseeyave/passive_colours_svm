@@ -58,19 +58,15 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
             # Get flux
             flux1 = m_to_flux(mag1)
             flux2 = m_to_flux(mag2)
-            print(i, ii, "Flux min/max:", flux1.min(), flux1.max())
-            print(i, ii, "Flux min/max:", flux2.min(), flux2.max())
+
             # Add normally distributed noise
             if noise_std > 0:
                 noise1 = np.random.normal(0, noise_std, size=mag1.shape)
                 noise2 = np.random.normal(0, noise_std, size=mag2.shape)
-                print(i, ii, "Noise min/max:", noise1.min(), noise1.max())
                 flux1 += noise1
                 flux2 += noise2
 
             # And back to magnitude
-            print(i, ii, "Flux min/max:", flux1.min(), flux1.max())
-            print(i, ii, "Flux min/max:", flux2.min(), flux2.max())
             new_mag1 = flux_to_m(flux1)
             new_mag2 = flux_to_m(flux2)
 
@@ -86,11 +82,21 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
 
     hdf.close()
 
-    print("Redshift truth", np.unique(int_zs, return_counts=True))
-
     # Define the truth array (z >= 5)
     truth[int_zs >= 5] = 1
+
+    # Remove any galaxies that were made into nans
+    nan_okinds = np.ones(data.shape[0], dtype=bool)
+    for i in range(len(colors[color_set])):
+        nan_okinds = np.logical_and(nan_okinds, ~np.isnan(data[:, i]))
+    data = data[nan_okinds, :]
+    truth = truth[nan_okinds]
+    int_zs = int_zs[nan_okinds]
+
+    print("Redshift truth", np.unique(int_zs, return_counts=True))
     print("Galaxy truth", np.unique(truth, return_counts=True))
+
+    print("There are", truth.size, '"galaxies" after replication')
 
     return data, truth, int_zs
 

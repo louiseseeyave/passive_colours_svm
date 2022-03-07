@@ -63,6 +63,7 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
             if noise_std > 0:
                 noise1 = np.random.normal(0, noise_std, size=mag1.shape)
                 noise2 = np.random.normal(0, noise_std, size=mag2.shape)
+                print("Noise min/max:", noise1.min(), noise1.max())
                 flux1 += noise1
                 flux2 += noise2
 

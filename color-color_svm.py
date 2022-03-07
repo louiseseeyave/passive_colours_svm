@@ -12,10 +12,10 @@ from sklearn.model_selection import train_test_split
 # import umap
 
 os.environ['FLARE'] = '/cosma7/data/dp004/dc-wilk2/flare'
-from flare.photom import m_to_flux
+from flare.photom import m_to_flux, flux_to_m
 
 
-def get_data(color_set, path, colors, noise_std, replicate=1):
+def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
 
     # Open hdf5 file
     hdf = h5py.File(path, "r")
@@ -29,22 +29,31 @@ def get_data(color_set, path, colors, noise_std, replicate=1):
     zs = hdf['galphotdust']['z'][...]
 
     # Initialise class arrays
-    int_zs = np.zeros(ngal * replicate)
-    truth = np.zeros(ngal * replicate)
+    int_zs = np.zeros(ngal + zs[zs >= replicate_z].size * replicate)
+    truth = np.zeros(ngal + zs[zs >= replicate_z].size * replicate)
 
     # Define the colors data set
-    data = np.zeros((ngal * replicate, len(colors[color_set])))
+    data = np.zeros((ngal + zs[zs >= replicate_z].size * replicate,
+                     len(colors[color_set])))
 
     # Loop until replicated required number of times
     i = 0
+    current_ngal = 0
     while i < replicate:
+
+        if i > 0:
+            okinds = zs >= replicate_z
+        else:
+            okinds = np.ones(ngal, dtype=bool)
+
+        this_ngal = zs[okinds].size
 
         # Loop over colors
         for ii, (filt1, filt2) in enumerate(colors[color_set]):
 
             # Get magnitudes
-            mag1 = hdf['galphotdust'][filt1][...]
-            mag2 = hdf['galphotdust'][filt2][...]
+            mag1 = hdf['galphotdust'][filt1][okinds]
+            mag2 = hdf['galphotdust'][filt2][okinds]
 
             # Get flux
             flux1 = m_to_flux(mag1)
@@ -57,12 +66,19 @@ def get_data(color_set, path, colors, noise_std, replicate=1):
                 flux1 += noise1
                 flux2 += noise2
 
-            data[ngal * i: ngal * (i + 1), ii] = (flux1 / flux2)
+            # And back to magnitude
+            new_mag1 = flux_to_m(flux1)
+            new_mag2 = flux_to_m(flux2)
+
+            # Now calculate the color
+            data[current_ngal: current_ngal + this_ngal, ii] = (new_mag1
+                                                                - new_mag2)
 
         # Compute integer redshift bin
-        int_zs[ngal * i: ngal * (i + 1)] = np.int32(zs)
+        int_zs[current_ngal: current_ngal + this_ngal] = np.int32(zs)
 
         i += 1
+        current_ngal += this_ngal
 
     hdf.close()
 
@@ -269,6 +285,7 @@ colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
 color_set = int(sys.argv[1])
 noise = [0, 0.05, 0.1, 0.5, 1][int(sys.argv[2])]
 replicate = int(sys.argv[3])
+replicate_z = int(sys.argv[4])  # replicate only galaxies above this z
 
 if noise == 0 and replicate > 1:
     print("Pointless to regenerate the same points without noise")
@@ -276,7 +293,8 @@ if noise == 0 and replicate > 1:
 
 # Define the colors data set
 data, truth, int_zs = get_data(color_set, path, colors,
-                               noise_std=noise, replicate=replicate)
+                               noise_std=noise, replicate=replicate,
+                               replicate_z=replicate_z)
 
 # Run SVM
 run_svm(data, truth, int_zs,

@@ -21,7 +21,7 @@ source ../obs-env/bin/activate
 i=$(($SLURM_ARRAY_TASK_ID - 1))
 
 # Run the program
-python color-color_svm.py 0 $i 1
+python color-color_svm.py 0 $i 5 4
 
 echo "Job done, info follows..."
 sacct -j $SLURM_JOBID --format=JobID,JobName,Partition,MaxRSS,Elapsed,ExitCode

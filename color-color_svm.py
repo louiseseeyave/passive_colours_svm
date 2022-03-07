@@ -194,6 +194,9 @@ def run_svm(data, truth, int_zs, label, colors):
                  horizontalalignment='right',
                  fontsize=8)
 
+    print(np.unique(y_test))
+    print(np.unique(highz_int_zs))
+
     ax.xaxis.set_ticklabels(np.unique(highz_int_zs))
     ax.yaxis.set_ticklabels(np.unique(highz_int_zs))
 

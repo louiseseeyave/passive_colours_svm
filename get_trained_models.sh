@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #SBATCH --ntasks 1 # The number of cores you need...
-#SBATCH --array=1-2
+#SBATCH --array=1-6
 #SBATCH -p cosma6 #or some other partition, e.g. cosma, cosma6, etc.
 #SBATCH -A dp004
 #SBATCH --cpus-per-task=16
@@ -21,7 +21,7 @@ source ../obs-env/bin/activate
 i=$(($SLURM_ARRAY_TASK_ID - 1))
 
 # Run the program
-python color-color_svm.py $i
+python color-color_svm.py 0 $i 1
 
 echo "Job done, info follows..."
 sacct -j $SLURM_JOBID --format=JobID,JobName,Partition,MaxRSS,Elapsed,ExitCode

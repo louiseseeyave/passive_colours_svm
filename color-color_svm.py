@@ -15,7 +15,25 @@ os.environ['FLARE'] = '/cosma7/data/dp004/dc-wilk2/flare'
 from flare.photom import m_to_flux
 
 
-def get_data(color_set, hdf, colors, noise_std, replicate=1):
+def get_data(color_set, path, colors, noise_std, replicate=1):
+
+    # Open hdf5 file
+    hdf = h5py.File(path, "r")
+
+    print("Filters:", list(hdf['galphotdust'].keys()))
+
+    ngal = hdf['galphotdust']['z'].size
+    print("There are", ngal, '"galaxies"')
+
+    # Get redshifts
+    zs = hdf['galphotdust']['z'][...]
+    int_zs = np.int32(zs)
+    print("Redshift truth", np.unique(int_zs, return_counts=True))
+
+    # Define the truth array (z > 5)
+    truth = np.zeros(ngal * replicate)
+    truth[zs >= 5] = 1
+    print("Galaxy truth", np.unique(truth, return_counts=True))
 
     # Define the colors data set
     data = np.zeros((ngal * replicate, len(colors[color_set])))
@@ -44,10 +62,16 @@ def get_data(color_set, hdf, colors, noise_std, replicate=1):
 
             data[ngal * i: ngal * (i + 1), ii] = (flux1 / flux2)
 
-    return data
+        i += 1
+
+    hdf.close()
+
+    return data, truth, int_zs
 
 
 def run_svm(data, truth, int_zs, label):
+
+    print("Got data with shapes", data.shape, truth.shape, int_zs.shape)
 
     # ===================== Is high redshift galaxy? =====================
 
@@ -194,25 +218,8 @@ def run_svm(data, truth, int_zs, label):
 
 # ===================== Aaron's SAM =====================
 
+# Define filepath
 path = "Euclid.h5"
-
-hdf = h5py.File(path, "r")
-
-print("Filters:", list(hdf['galphotdust'].keys()))
-
-ngal = hdf['galphotdust']['z'].size
-print("There are", ngal, '"galaxies"')
-
-# Get redshifts
-zs = hdf['galphotdust']['z'][...]
-int_zs = np.int32(zs)
-print("Redshift truth", np.unique(int_zs, return_counts=True))
-
-# Define the truth array (z > 5)
-truth = np.zeros(ngal)
-truth[zs >= 5] = 1
-
-print("Galaxy truth", np.unique(truth, return_counts=True))
 
 # Define band wavelengths
 wls = {'Euclid_H': (2 - (2 - 1.544)) * 1000,
@@ -236,11 +243,11 @@ noise = [0, 0.05, 0.1, 0.5, 1][int(sys.argv[2])]
 replicate = int(sys.argv[2])
 
 # Define the colors data set
-data = get_data(color_set, hdf, colors, noise_std=noise, replicate=replicate)
+data, truth, int_zs = get_data(color_set, path, colors,
+                               noise_std=noise, replicate=replicate)
 
-hdf.close()
-
-run_svm(data, truth, int_zs, 
+# Run SVM
+run_svm(data, truth, int_zs,
         "Euclid_LSST_colorset-%d_noise-%.1f_replicate-%d" % (color_set,
                                                              noise,
                                                              replicate))

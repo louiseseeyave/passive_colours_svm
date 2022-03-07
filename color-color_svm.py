@@ -59,6 +59,7 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
             flux1 = m_to_flux(mag1)
             flux2 = m_to_flux(mag2)
             print(i, ii, "Flux min/max:", flux1.min(), flux1.max())
+            print(i, ii, "Flux min/max:", flux2.min(), flux2.max())
             # Add normally distributed noise
             if noise_std > 0:
                 noise1 = np.random.normal(0, noise_std, size=mag1.shape)
@@ -69,6 +70,7 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
 
             # And back to magnitude
             print(i, ii, "Flux min/max:", flux1.min(), flux1.max())
+            print(i, ii, "Flux min/max:", flux2.min(), flux2.max())
             new_mag1 = flux_to_m(flux1)
             new_mag2 = flux_to_m(flux2)
 
@@ -286,7 +288,7 @@ colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
 
 # Which color set are we running with?
 color_set = int(sys.argv[1])
-noise = [0, 0.05, 0.1, 0.5, 1][int(sys.argv[2])]  # in nJy
+noise = [0, 0.5, 1., 5., 10.][int(sys.argv[2])]  # in nJy
 replicate = int(sys.argv[3])
 replicate_z = int(sys.argv[4])  # replicate only galaxies above this z
 

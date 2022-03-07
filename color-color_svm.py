@@ -75,7 +75,7 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
                                                                 - new_mag2)
 
         # Compute integer redshift bin
-        int_zs[current_ngal: current_ngal + this_ngal] = np.int32(zs)
+        int_zs[current_ngal: current_ngal + this_ngal] = np.int32(zs[okinds])
 
         i += 1
         current_ngal += this_ngal
@@ -142,12 +142,13 @@ def run_svm(data, truth, int_zs, label):
 
     # Remove low redshift data to emulate a hierarchical approach with
     # perfect high redshift classification
-    data = data[int_zs >= 5, :]
-    int_zs = int_zs[int_zs >= 5]
+    okinds = int_zs >= 5
+    highz_data = data[okinds, :]
+    highz_int_zs = int_zs[okinds]
 
     # Split into training and validation
-    X_train, X_test, y_train, y_test = train_test_split(data,
-                                                        int_zs,
+    X_train, X_test, y_train, y_test = train_test_split(highz_data,
+                                                        highz_int_zs,
                                                         test_size=0.3,
                                                         random_state=42)
 
@@ -179,8 +180,8 @@ def run_svm(data, truth, int_zs, label):
                  horizontalalignment='right',
                  fontsize=8)
 
-    ax.xaxis.set_ticklabels(np.unique(int_zs))
-    ax.yaxis.set_ticklabels(np.unique(int_zs))
+    ax.xaxis.set_ticklabels(np.unique(highz_int_zs))
+    ax.yaxis.set_ticklabels(np.unique(highz_int_zs))
 
     plt.savefig("plots/redshift_bin_classifier_%s.png" % label, bbox_inches="tight")
 

@@ -95,8 +95,9 @@ def run_svm(data, truth, int_zs, label):
     # Classify the prediction data set
     y_pred = clf.predict(X_test)
 
+    acc = metrics.accuracy_score(y_test, y_pred) * 100
     print("High redshift galaxy? Accuracy: %.3f"
-          % (metrics.accuracy_score(y_test, y_pred) * 100) + "%")
+          % acc + "%")
 
     cf_matrix = metrics.confusion_matrix(y_test, y_pred)
 
@@ -108,6 +109,14 @@ def run_svm(data, truth, int_zs, label):
 
     ax.xaxis.set_ticklabels(['Contaminent', 'High-$z$'])
     ax.yaxis.set_ticklabels(['Contaminent', 'High-$z$'])
+
+    ax.text(0.95, 0.95, '%.2f' % acc + "%",
+                 bbox=dict(boxstyle="round,pad=0.3", fc='w',
+                           ec="k", lw=1, alpha=0.8),
+                 transform=ax.transAxes,
+                 horizontalalignment='right',
+                 fontsize=8)
+
 
     plt.savefig("plots/highz_gal_classifier_%s.png" % label, bbox_inches="tight")
 
@@ -130,8 +139,9 @@ def run_svm(data, truth, int_zs, label):
     # Classify the prediction data set
     y_pred = clf.predict(X_test)
 
+    acc = metrics.accuracy_score(y_test, y_pred) * 100
     print("Redshift bin accuracy: %.3f"
-          % (metrics.accuracy_score(y_test, y_pred) * 100) + "%")
+          % acc + "%")
 
     cf_matrix = metrics.confusion_matrix(y_test, y_pred)
 
@@ -140,6 +150,13 @@ def run_svm(data, truth, int_zs, label):
 
     ax.set_xlabel('Predicted Class')
     ax.set_ylabel('Actual Class')
+
+    ax.text(0.95, 0.95, '%.2f' % acc + "%",
+                 bbox=dict(boxstyle="round,pad=0.3", fc='w',
+                           ec="k", lw=1, alpha=0.8),
+                 transform=ax.transAxes,
+                 horizontalalignment='right',
+                 fontsize=8)
 
     ax.xaxis.set_ticklabels(np.unique(int_zs))
     ax.yaxis.set_ticklabels(np.unique(int_zs))

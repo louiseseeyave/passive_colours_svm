@@ -134,3 +134,5 @@ plots/*
 *.png
 *.h5
 *.hdf5
+logs/
+logs/*

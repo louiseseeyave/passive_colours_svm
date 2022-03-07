@@ -1,6 +1,5 @@
 import sys
 import numpy as np
-import pandas as pd
 import h5py
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -8,7 +7,7 @@ import seaborn as sns
 from sklearn import metrics
 from sklearn import svm
 from sklearn.model_selection import train_test_split
-import umap
+# import umap
 
 
 def run_svm(data, truth, int_zs, label):
@@ -43,7 +42,7 @@ def run_svm(data, truth, int_zs, label):
     ax.xaxis.set_ticklabels(['Contaminent', 'High-$z$'])
     ax.yaxis.set_ticklabels(['Contaminent', 'High-$z$'])
 
-    plt.savefig("highz_gal_classifier_%s.png" % label, bbox_inches="tight")
+    plt.savefig("plots/highz_gal_classifier_%s.png" % label, bbox_inches="tight")
 
     plt.close()
 
@@ -77,41 +76,41 @@ def run_svm(data, truth, int_zs, label):
     ax.xaxis.set_ticklabels(np.unique(int_zs))
     ax.yaxis.set_ticklabels(np.unique(int_zs))
 
-    plt.savefig("redshift_bin_classifier_%s.png" % label, bbox_inches="tight")
+    plt.savefig("plots/redshift_bin_classifier_%s.png" % label, bbox_inches="tight")
 
     plt.close()
 
-    reducer = umap.UMAP()
-    embedding = reducer.fit_transform(data)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.grid(True)
-
-    ax.scatter(embedding[:, 0], embedding[:, 1],
-               c=truth, cmap="coolwarm")
-
-    ax.set_aspect('equal', 'datalim')
-
-    plt.savefig("highz_gal_umap_%s.png" % label, bbox_inches="tight")
-
-    plt.close()
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.grid(True)
-
-    im = ax.scatter(embedding[:, 0], embedding[:, 1],
-                    c=zs, cmap="plasma")
-
-    ax.set_aspect('equal', 'datalim')
-
-    cbar = fig.colorbar(im)
-    cbar.set_label("$z$")
-
-    plt.savefig("redshift_umap_%s.png" % label, bbox_inches="tight")
-
-    plt.close()
+    # reducer = umap.UMAP()
+    # embedding = reducer.fit_transform(data)
+    #
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)
+    # ax.grid(True)
+    #
+    # ax.scatter(embedding[:, 0], embedding[:, 1],
+    #            c=truth, cmap="coolwarm")
+    #
+    # ax.set_aspect('equal', 'datalim')
+    #
+    # plt.savefig("highz_gal_umap_%s.png" % label, bbox_inches="tight")
+    #
+    # plt.close()
+    #
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)
+    # ax.grid(True)
+    #
+    # im = ax.scatter(embedding[:, 0], embedding[:, 1],
+    #                 c=zs, cmap="plasma")
+    #
+    # ax.set_aspect('equal', 'datalim')
+    #
+    # cbar = fig.colorbar(im)
+    # cbar.set_label("$z$")
+    #
+    # plt.savefig("redshift_umap_%s.png" % label, bbox_inches="tight")
+    #
+    # plt.close()
 
 # ===================== Euclid Catalogue =====================
 

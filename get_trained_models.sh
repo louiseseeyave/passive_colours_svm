@@ -10,13 +10,13 @@
 #SBATCH -t 02:00:00
 
 # Run the job from the following directory - change this to point to your own personal space on /lustre
-cd /cosma7/data/dp004/dc-rope1/FLARES/flares-sizes-obs
+cd /cosma7/data/dp004/dc-rope1/Observational/colorcolorSVM/
 
 module purge
 #load the modules used to build your program.
-module load python/3.9.1-C7 gnu_comp/11.1.0 openmpi/4.1.1 ucx/1.10.1
+module load python/3.9.1-C7
 
-source flares-size-env/bin/activate
+source ../obs-env/bin/activate
 
 i=$(($SLURM_ARRAY_TASK_ID - 1))
 

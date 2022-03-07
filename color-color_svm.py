@@ -194,11 +194,8 @@ def run_svm(data, truth, int_zs, label, colors):
                  horizontalalignment='right',
                  fontsize=8)
 
-    print(np.unique(y_test))
-    print(np.unique(highz_int_zs))
-
-    ax.xaxis.set_ticklabels(np.unique(highz_int_zs))
-    ax.yaxis.set_ticklabels(np.unique(highz_int_zs))
+    ax.xaxis.set_ticklabels(np.unique(y_test))
+    ax.yaxis.set_ticklabels(np.unique(y_test))
 
     plt.savefig("plots/redshift_bin_classifier_%s.png" % label, bbox_inches="tight")
 
@@ -254,7 +251,7 @@ def run_svm(data, truth, int_zs, label, colors):
 #     ax.set_yticks(range(len(imp)), names[::-1])
 #
 #     fig.savefig("plots/feature_importance_type%s_%s.png" % (class_type, label),
-#                 bbox_inches="tight")
+#                  bbox_inches="tight")
 #
 #     plt.close(fig)
 

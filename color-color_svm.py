@@ -27,14 +27,10 @@ def get_data(color_set, path, colors, noise_std, replicate=1):
 
     # Get redshifts
     zs = hdf['galphotdust']['z'][...]
-    int_zs = np.int32(zs)
-    print("Redshift truth", np.unique(int_zs, return_counts=True))
 
-    # Define the truth array (z > 5)
-    print(ngal, zs.shape, ngal * replicate)
+    # Initialise class arrays
+    int_zs = np.zeros(ngal * replicate)
     truth = np.zeros(ngal * replicate)
-    truth[zs >= 5] = 1
-    print("Galaxy truth", np.unique(truth, return_counts=True))
 
     # Define the colors data set
     data = np.zeros((ngal * replicate, len(colors[color_set])))
@@ -63,9 +59,18 @@ def get_data(color_set, path, colors, noise_std, replicate=1):
 
             data[ngal * i: ngal * (i + 1), ii] = (flux1 / flux2)
 
+        # Compute integer redshift bin
+        int_zs[ngal * i: ngal * (i + 1)] = np.int32(zs)
+
         i += 1
 
     hdf.close()
+
+    print("Redshift truth", np.unique(int_zs, return_counts=True))
+
+    # Define the truth array (z >= 5)
+    truth[int_zs >= 5] = 1
+    print("Galaxy truth", np.unique(truth, return_counts=True))
 
     return data, truth, int_zs
 

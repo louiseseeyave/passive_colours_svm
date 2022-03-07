@@ -1,4 +1,6 @@
 import sys
+import os
+
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
@@ -8,6 +10,41 @@ from sklearn import metrics
 from sklearn import svm
 from sklearn.model_selection import train_test_split
 # import umap
+
+os.environ['FLARE'] = '/cosma7/data/dp004/dc-wilk2/flare'
+from flare.photom import m_to_flux
+
+
+def get_data(color_set, hdf, colors, noise_std, replicate=1):
+
+    # Define the colors data set
+    data = np.zeros((ngal * replicate, len(colors[color_set])))
+
+    # Loop until replicated required number of times
+    i = 0
+    while i < replicate:
+
+        # Loop over colors
+        for ii, (filt1, filt2) in enumerate(colors[color_set]):
+
+            # Get magnitudes
+            mag1 = hdf['galphotdust'][filt1][...]
+            mag2 = hdf['galphotdust'][filt2][...]
+
+            # Get flux
+            flux1 = m_to_flux(mag1)
+            flux2 = m_to_flux(mag2)
+
+            # Add normally distributed noise
+            if noise_std > 0:
+                noise1 = np.random.normal(0, noise_std, size=mag1.shape)
+                noise2 = np.random.normal(0, noise_std, size=mag2.shape)
+                flux1 += noise1
+                flux2 += noise2
+
+            data[ngal * i: ngal * (i + 1), ii] = (flux1 / flux2)
+
+    return data
 
 
 def run_svm(data, truth, int_zs, label):
@@ -49,7 +86,8 @@ def run_svm(data, truth, int_zs, label):
     # ===================== Redshift binning =====================
 
     # Split into training and validation
-    X_train, X_test, y_train, y_test = train_test_split(data, int_zs,
+    X_train, X_test, y_train, y_test = train_test_split(data[int_zs >= 5, :],
+                                                        int_zs[int_zs >= 5],
                                                         test_size=0.3,
                                                         random_state=42)
 
@@ -172,7 +210,7 @@ print("Redshift truth", np.unique(int_zs, return_counts=True))
 
 # Define the truth array (z > 5)
 truth = np.zeros(ngal)
-truth[zs > 5] = 1
+truth[zs >= 5] = 1
 
 print("Galaxy truth", np.unique(truth, return_counts=True))
 
@@ -186,19 +224,23 @@ wls = {'Euclid_H': (2 - (2 - 1.544)) * 1000,
        'LSST_y': 1084.5 - (1084.5 - 923.8), 'LSST_z': 923.5 - (923.5 - 818.0)}
 
 # Now define the colors
-colors = {1: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
+colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
               ('Euclid_Y', 'Euclid_J'), ('Euclid_J', 'Euclid_H'),
               ('Euclid_H', 'LSST_u')),
-          2: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
+          1: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
               ('Euclid_Y', 'Euclid_J'), ('Euclid_J', 'Euclid_H'))}
 
 # Which color set are we running with?
-key = int(sys.argv[1])
+color_set = int(sys.argv[1])
+noise = [0, 0.05, 0.1, 0.5, 1][int(sys.argv[2])]
+replicate = int(sys.argv[2])
 
 # Define the colors data set
-data = np.zeros((ngal, len(colors[key])))
-for i, (filt1, filt2) in enumerate(colors[key]):
-    data[:, i] = (hdf['galphotdust'][filt1][...]
-                  - hdf['galphotdust'][filt2][...])
+data = get_data(color_set, hdf, colors, noise_std=noise, replicate=replicate)
 
-run_svm(data, truth, int_zs, "Euclid_LSST_" + str(key))
+hdf.close()
+
+run_svm(data, truth, int_zs, 
+        "Euclid_LSST_colorset-%d_noise-%.1f_replicate-%d" % (color_set,
+                                                             noise,
+                                                             replicate))

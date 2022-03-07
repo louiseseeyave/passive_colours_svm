@@ -101,7 +101,7 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
     return data, truth, int_zs
 
 
-def run_svm(data, truth, int_zs, label):
+def run_svm(data, truth, int_zs, label, colors):
 
     print("Got data with shapes", data.shape, truth.shape, int_zs.shape)
 
@@ -147,6 +147,10 @@ def run_svm(data, truth, int_zs, label):
     plt.savefig("plots/highz_gal_classifier_%s.png" % label, bbox_inches="tight")
 
     plt.close()
+
+    names = [i + " - " + j for i, j in colors]
+
+    f_importances(clf.coef_, names, "highz", label=label)
 
     # ===================== Redshift binning =====================
 
@@ -197,6 +201,8 @@ def run_svm(data, truth, int_zs, label):
 
     plt.close()
 
+    f_importances(clf.coef_, names, "redshift", label=label)
+
     # reducer = umap.UMAP()
     # embedding = reducer.fit_transform(data)
     #
@@ -228,6 +234,26 @@ def run_svm(data, truth, int_zs, label):
     # plt.savefig("redshift_umap_%s.png" % label, bbox_inches="tight")
     #
     # plt.close()
+
+
+def f_importances(coef, names, class_type, label):
+    """ https://stackoverflow.com/questions/41592661/
+        determining-the-most-contributing-features-for-svm
+        -classifier-in-sklearn """
+
+    imp = coef
+    imp, names = zip(*sorted(list(zip(imp, names))))
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    ax.barh(range(len(imp)), imp[::-1], align='center')
+    ax.set_yticks(range(len(imp)), names[::-1])
+
+    fig.savefig("plots/feature_importance_type%s_%s.png" % (class_type, label),
+                bbox_inches="tight")
+
+    plt.close(fig)
 
 # ===================== Euclid Catalogue =====================
 
@@ -285,16 +311,36 @@ wls = {'Euclid_H': (2 - (2 - 1.544)) * 1000,
        'LSST_r': 691.0 - (691.0 - 552.0), 'LSST_u': 393.5 - (393.5 - 320.5),
        'LSST_y': 1084.5 - (1084.5 - 923.8), 'LSST_z': 923.5 - (923.5 - 818.0)}
 
+# Create list of wavelengths
+ls = []
+fs = []
+for key in wls:
+    ls.append(wls[key])
+    fs.append(key)
+
+# Order filters
+ls = np.array(ls)
+fs = np.array(fs)
+sinds = np.argsort(ls)
+fs = fs[sinds]
+
+# Get every possible colour (ifilt - each redder ifilt)
+cs = []
+for i, f1 in enumerate(fs[:-1]):
+    for j, f2 in enumerate(fs[i + 1:]):
+        cs.append((f1, f2))
+
 # Now define the colors
 colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
               ('Euclid_Y', 'Euclid_J'), ('Euclid_J', 'Euclid_H'),
               ('Euclid_H', 'LSST_u')),
           1: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
-              ('Euclid_Y', 'Euclid_J'), ('Euclid_J', 'Euclid_H'))}
+              ('Euclid_Y', 'Euclid_J'), ('Euclid_J', 'Euclid_H')),
+          2: cs}
 
 # Which color set are we running with?
 color_set = int(sys.argv[1])
-noise = [0, 0.5, 1., 5., 10.][int(sys.argv[2])]  # in nJy
+noise = [0, 0.5, 1., 5., 10., 25., 50., 100.][int(sys.argv[2])]  # in nJy
 replicate = int(sys.argv[3])
 replicate_z = int(sys.argv[4])  # replicate only galaxies above this z
 
@@ -309,6 +355,6 @@ data, truth, int_zs = get_data(color_set, path, colors,
 
 # Run SVM
 run_svm(data, truth, int_zs,
-        "Euclid_LSST_colorset-%d_noise-%.1f_replicate-%d" % (color_set,
-                                                             noise,
-                                                             replicate))
+        "Euclid_LSST_nD%d_colorset-%d_"
+        "noise-%.1f_replicate-%d" % (len(colors[color_set]), color_set,
+                                     noise, replicate), colors[color_set])

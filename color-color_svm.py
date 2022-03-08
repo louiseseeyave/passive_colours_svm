@@ -243,7 +243,7 @@ def f_importances(coef, names, class_type, label):
 
     print(coef)
 
-    imp = coef[0]
+    imp = coef
     imp, names = zip(*sorted(list(zip(imp, names))))
 
     fig = plt.figure()
@@ -252,7 +252,8 @@ def f_importances(coef, names, class_type, label):
     print(len(imp), range(len(imp)), names)
 
     ax.barh(range(len(imp)), imp, align='center')
-    ax.set_yticklabels(names)
+
+    for x, y, l in zip(imp, range(len(imp)))
 
     fig.savefig("plots/feature_importance_type%s_%s.png" % (class_type, label),
                  bbox_inches="tight")

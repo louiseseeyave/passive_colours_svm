@@ -78,7 +78,7 @@ def run_svm(data, truth, int_zs, label, colors, noise):
                                                         random_state=42)
 
     # Initialise the model
-    clf = svm.SVC(kernel="linear")
+    clf = svm.SVC()
 
     # Train the model
     clf.fit(X_train, y_train)
@@ -120,10 +120,6 @@ def run_svm(data, truth, int_zs, label, colors, noise):
 
         plt.close()
 
-    names = [i + " - " + j for i, j in colors]
-
-    f_importances(clf.coef_, names, "highz", label=label)
-
     # ===================== Redshift binning =====================
 
     # Remove low redshift data to emulate a hierarchical approach with
@@ -139,7 +135,7 @@ def run_svm(data, truth, int_zs, label, colors, noise):
                                                         random_state=42)
 
     # Initialise the model
-    clf = svm.SVC(kernel="linear")
+    clf = svm.SVC()
 
     # Train the model
     clf.fit(X_train, y_train)
@@ -179,8 +175,6 @@ def run_svm(data, truth, int_zs, label, colors, noise):
         plt.savefig("plots/redshift_bin_classifier_%s.png" % label, bbox_inches="tight")
 
         plt.close()
-
-    f_importances(clf.coef_, names, "redshift", label=label)
 
     # reducer = umap.UMAP()
     # embedding = reducer.fit_transform(data)
@@ -323,7 +317,7 @@ colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
 
 # Which color set are we running with?
 color_set = int(sys.argv[1])
-noise = [0.0, 25., 50., 100.]  # in nJy
+noise = [0.0, 1, 5, 10, 25., 50., 100.]  # in nJy
 
 # Define the colors data set
 data, truth, int_zs = get_data(color_set, path, colors)

@@ -172,7 +172,8 @@ def run_svm(data, truth, int_zs, label, colors, noise):
         ax.xaxis.set_ticklabels(np.unique(y_test))
         ax.yaxis.set_ticklabels(np.unique(y_test))
 
-        plt.savefig("plots/redshift_bin_classifier_%s.png" % label, bbox_inches="tight")
+        plt.savefig("plots/redshift_bin_classifier_%s_noise-%.1f.png"
+                    % (label, n) % label, bbox_inches="tight")
 
         plt.close()
 

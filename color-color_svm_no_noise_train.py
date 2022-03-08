@@ -15,7 +15,7 @@ os.environ['FLARE'] = '/cosma7/data/dp004/dc-wilk2/flare'
 from flare.photom import m_to_flux, flux_to_m
 
 
-def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
+def get_data(color_set, path, colors):
 
     # Open hdf5 file
     hdf = h5py.File(path, "r")
@@ -29,56 +29,23 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
     zs = hdf['galphotdust']['z'][...]
 
     # Initialise class arrays
-    int_zs = np.zeros(ngal + zs[zs >= replicate_z].size * replicate)
-    truth = np.zeros(ngal + zs[zs >= replicate_z].size * replicate)
+    truth = np.zeros(ngal)
 
     # Define the colors data set
-    data = np.zeros((ngal + zs[zs >= replicate_z].size * replicate,
-                     len(colors[color_set])))
+    data = np.zeros((ngal, len(colors[color_set])))
 
-    # Loop until replicated required number of times
-    i = 0
-    current_ngal = 0
-    while i < replicate:
+    # Loop over colors
+    for ii, (filt1, filt2) in enumerate(colors[color_set]):
 
-        if i > 0:
-            okinds = zs >= replicate_z
-        else:
-            okinds = np.ones(ngal, dtype=bool)
+        # Get magnitudes
+        mag1 = hdf['galphotdust'][filt1][...]
+        mag2 = hdf['galphotdust'][filt2][...]
 
-        this_ngal = zs[okinds].size
+        # Now calculate the color
+        data[:, ii] = mag1 - mag2
 
-        # Loop over colors
-        for ii, (filt1, filt2) in enumerate(colors[color_set]):
-
-            # Get magnitudes
-            mag1 = hdf['galphotdust'][filt1][okinds]
-            mag2 = hdf['galphotdust'][filt2][okinds]
-
-            # Get flux
-            flux1 = m_to_flux(mag1)
-            flux2 = m_to_flux(mag2)
-
-            # Add normally distributed noise
-            if noise_std > 0:
-                noise1 = np.random.normal(0, noise_std, size=mag1.shape)
-                noise2 = np.random.normal(0, noise_std, size=mag2.shape)
-                flux1 += noise1
-                flux2 += noise2
-
-            # And back to magnitude
-            new_mag1 = flux_to_m(flux1)
-            new_mag2 = flux_to_m(flux2)
-
-            # Now calculate the color
-            data[current_ngal: current_ngal + this_ngal, ii] = (new_mag1
-                                                                - new_mag2)
-
-        # Compute integer redshift bin
-        int_zs[current_ngal: current_ngal + this_ngal] = np.int32(zs[okinds])
-
-        i += 1
-        current_ngal += this_ngal
+    # Compute integer redshift bin
+    int_zs = np.int32(zs)
 
     hdf.close()
 
@@ -96,12 +63,10 @@ def get_data(color_set, path, colors, noise_std, replicate=1, replicate_z=0):
     print("Redshift truth", np.unique(int_zs, return_counts=True))
     print("Galaxy truth", np.unique(truth, return_counts=True))
 
-    print("There are", truth.size, '"galaxies" after replication')
-
     return data, truth, int_zs
 
 
-def run_svm(data, truth, int_zs, label, colors):
+def run_svm(data, truth, int_zs, label, colors, noise):
 
     print("Got data with shapes", data.shape, truth.shape, int_zs.shape)
 
@@ -118,35 +83,42 @@ def run_svm(data, truth, int_zs, label, colors):
     # Train the model
     clf.fit(X_train, y_train)
 
-    # Classify the prediction data set
-    y_pred = clf.predict(X_test)
+    # Loop over noise levels for prediction
+    for n in noise:
 
-    acc = metrics.accuracy_score(y_test, y_pred) * 100
-    print("High redshift galaxy? Accuracy: %.3f"
-          % acc + "%")
+        if n > 0:
+            noise_arr = np.random.normal(0, n, X_test.shape)
+            X_test += noise_arr
 
-    cf_matrix = metrics.confusion_matrix(y_test, y_pred)
+        # Classify the prediction data set
+        y_pred = clf.predict(X_test)
 
-    ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues',
-                     cbar_kws={'label': '$N$'}, fmt="d")
+        acc = metrics.accuracy_score(y_test, y_pred) * 100
+        print("High redshift galaxy? with %.1f noise std Accuracy: %.3f"
+              % (n, acc) + "%")
 
-    ax.set_xlabel('Predicted Class')
-    ax.set_ylabel('Actual Class')
+        cf_matrix = metrics.confusion_matrix(y_test, y_pred)
 
-    ax.xaxis.set_ticklabels(['Contaminent', 'High-$z$'])
-    ax.yaxis.set_ticklabels(['Contaminent', 'High-$z$'])
+        ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues',
+                         cbar_kws={'label': '$N$'}, fmt="d")
 
-    ax.text(0.95, 0.95, '%.2f' % acc + "%",
-                 bbox=dict(boxstyle="round,pad=0.3", fc='w',
-                           ec="k", lw=1, alpha=0.8),
-                 transform=ax.transAxes,
-                 horizontalalignment='right',
-                 fontsize=8)
+        ax.set_xlabel('Predicted Class')
+        ax.set_ylabel('Actual Class')
 
+        ax.xaxis.set_ticklabels(['Contaminent', 'High-$z$'])
+        ax.yaxis.set_ticklabels(['Contaminent', 'High-$z$'])
 
-    plt.savefig("plots/highz_gal_classifier_%s.png" % label, bbox_inches="tight")
+        ax.text(0.95, 0.95, '%.2f' % acc + "%",
+                     bbox=dict(boxstyle="round,pad=0.3", fc='w',
+                               ec="k", lw=1, alpha=0.8),
+                     transform=ax.transAxes,
+                     horizontalalignment='right',
+                     fontsize=8)
 
-    plt.close()
+        plt.savefig("plots/highz_gal_classifier_%s_noise-%.1f.png"
+                    % (label, n), bbox_inches="tight")
+
+        plt.close()
 
     names = [i + " - " + j for i, j in colors]
 
@@ -172,34 +144,41 @@ def run_svm(data, truth, int_zs, label, colors):
     # Train the model
     clf.fit(X_train, y_train)
 
-    # Classify the prediction data set
-    y_pred = clf.predict(X_test)
+    # Loop over noise levels for prediction
+    for n in noise:
 
-    acc = metrics.accuracy_score(y_test, y_pred) * 100
-    print("Redshift bin accuracy: %.3f"
-          % acc + "%")
+        if n > 0:
+            noise_arr = np.random.normal(0, n, X_test.shape)
+            X_test += noise_arr
 
-    cf_matrix = metrics.confusion_matrix(y_test, y_pred)
+        # Classify the prediction data set
+        y_pred = clf.predict(X_test)
 
-    ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues',
-                     cbar_kws={'label': '$N$'}, fmt="d")
+        acc = metrics.accuracy_score(y_test, y_pred) * 100
+        print("Redshift bin with %.1f noise std Accuracy: %.3f"
+                  % (n, acc) + "%")
 
-    ax.set_xlabel('Predicted Class')
-    ax.set_ylabel('Actual Class')
+        cf_matrix = metrics.confusion_matrix(y_test, y_pred)
 
-    ax.text(0.95, 0.95, '%.2f' % acc + "%",
-                 bbox=dict(boxstyle="round,pad=0.3", fc='w',
-                           ec="k", lw=1, alpha=0.8),
-                 transform=ax.transAxes,
-                 horizontalalignment='right',
-                 fontsize=8)
+        ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues',
+                         cbar_kws={'label': '$N$'}, fmt="d")
 
-    ax.xaxis.set_ticklabels(np.unique(y_test))
-    ax.yaxis.set_ticklabels(np.unique(y_test))
+        ax.set_xlabel('Predicted Class')
+        ax.set_ylabel('Actual Class')
 
-    plt.savefig("plots/redshift_bin_classifier_%s.png" % label, bbox_inches="tight")
+        ax.text(0.95, 0.95, '%.2f' % acc + "%",
+                     bbox=dict(boxstyle="round,pad=0.3", fc='w',
+                               ec="k", lw=1, alpha=0.8),
+                     transform=ax.transAxes,
+                     horizontalalignment='right',
+                     fontsize=8)
 
-    plt.close()
+        ax.xaxis.set_ticklabels(np.unique(y_test))
+        ax.yaxis.set_ticklabels(np.unique(y_test))
+
+        plt.savefig("plots/redshift_bin_classifier_%s.png" % label, bbox_inches="tight")
+
+        plt.close()
 
     f_importances(clf.coef_, names, "redshift", label=label)
 
@@ -343,27 +322,13 @@ colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
           2: cs}
 
 # Which color set are we running with?
-# color_set = int(sys.argv[1])
-# noise = [0.0, 25., 50., 100.][int(sys.argv[2])]  # in nJy
-# replicate = int(sys.argv[3])
-# replicate_z = int(sys.argv[4])  # replicate only galaxies above this z
-
-color_set = 0
-noise = [0.0, 25., 50., 100.][0]  # in nJy
-replicate = 1
-replicate_z = 4  # replicate only galaxies above this z
-
-if noise == 0 and replicate > 1:
-    print("Pointless to regenerate the same points without noise")
-    replicate = 1
+color_set = int(sys.argv[1])
+noise = [0.0, 25., 50., 100.]  # in nJy
 
 # Define the colors data set
-data, truth, int_zs = get_data(color_set, path, colors,
-                               noise_std=noise, replicate=replicate,
-                               replicate_z=replicate_z)
+data, truth, int_zs = get_data(color_set, path, colors)
 
 # Run SVM
 run_svm(data, truth, int_zs,
-        "Euclid_LSST_nD%d_colorset-%d_"
-        "noise-%.1f_replicate-%d" % (len(colors[color_set]), color_set,
-                                     noise, replicate), colors[color_set])
+        "Euclid_LSST_nD%d_colorset-%d_" % (len(colors[color_set]), color_set),
+        colors[color_set],  noise)

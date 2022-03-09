@@ -88,7 +88,9 @@ def run_svm(data, truth, int_zs, label, colors, noise):
 
         if n > 0:
             noise_arr = np.random.normal(0, n, X_test.shape)
-            X_test += noise_arr
+            Xf_test = m_to_flux(X_test)
+            Xf_test += noise_arr
+            X_test = flux_to_m(Xf_test)
 
         # Classify the prediction data set
         y_pred = clf.predict(X_test)
@@ -319,7 +321,7 @@ colors = {0: (('Euclid_VIS', 'LSST_z'), ('LSST_z', 'Euclid_Y'),
           2: cs}
 
 # Which color set are we running with?
-color_set = int(sys.argv[1])
+color_set = 0  # int(sys.argv[1])
 noise = [0.0, 1, 5, 10, 25., 50., 100.]  # in nJy
 
 # Define the colors data set

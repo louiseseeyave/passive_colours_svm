@@ -145,7 +145,9 @@ def run_svm(data, truth, int_zs, label, colors, noise):
 
         if n > 0:
             noise_arr = np.random.normal(0, n, X_test.shape)
-            X_test += noise_arr
+            Xf_test = m_to_flux(X_test)
+            Xf_test += noise_arr
+            X_test = flux_to_m(Xf_test)
 
         # Classify the prediction data set
         y_pred = clf.predict(X_test)

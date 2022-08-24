@@ -1,5 +1,5 @@
 import numpy as np
-from color_color_svm_no_noise_train import get_data, get_mask, run_svm
+from color_color_svm_no_noise_train import get_data, get_mask, run_svm, random_sample
 
 # --------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ set = []
 for i, f1 in enumerate(nircam[:-1]):
     for j, f2 in enumerate(nircam[i + 1:]):
         set.append((f1, f2))
-print(set)
+#print(set)
 color_dict['nircam'] = set
 
 # nircam long wavelength filters + miri F560W and F770W
@@ -46,7 +46,7 @@ nircamlw_f560w_f770w = nircam_lw + ['F560W', 'F770W']
 for i, f1 in enumerate(nircamlw_f560w_f770w[:-1]):
     for j, f2 in enumerate(nircamlw_f560w_f770w[i + 1:]):
         set.append((f1, f2))
-print(set)
+#print(set)
 color_dict['nircamlw_f560w_f770w'] = set
 
 
@@ -60,30 +60,50 @@ path = '/cosma7/data/dp004/dc-seey1/data/flares/myversion/passive_data.hdf5'
 
 
 # parameters *********************
+
 # specify filters to use
-#color_set = 'nircamlw_f560w_f770w' # choose color set
-#keep = get_mask(nircamlw_f560w_f770w, flux_threshold, path) # get mask
-color_set = 'nircam'
-keep = get_mask(nircam, flux_threshold, path) # get mask
+color_set = 'nircamlw_f560w_f770w' # choose color set
+keep = get_mask(nircamlw_f560w_f770w, flux_threshold, path) # get mask
+#color_set = 'nircam'
+#keep = get_mask(nircam, flux_threshold, path) # get mask
 
 # specify class weight (None, 'balanced', dictionary)
-class_weight = 'balanced'
+class_weights = [None]
 
-# specify kernel (‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’)
-kernel = 'linear'
+# specify kernel ['linear', 'poly', 'rbf', 'sigmoid']
+kernels = ['poly']
+
+# specify test_size (default=0.3)
+test_sizes = [0.3]
 
 # specify label
-#label = color_set
-label = '_'.join((color_set, kernel, class_weight))
+#label = '_'.join((color_set, kernel, class_weight, f'test-{test_size}'))
+
 # ********************************
 
 
 data, truth = get_data(color_dict, color_set, path, keep)
+
+oversampling = [0.0, 0.1, 0.3, 0.5]
+undersampling = [0.0, 0.1, 0.3, 0.5]
 
 noise = [0.]  # [nJy] (no noise)
 
 feature_names = np.array(color_dict[color_set])
 feature_names = [f'{x}-{y}' for (x,y) in feature_names]
 
-run_svm(data, truth, label, noise, feature_names, kernel=kernel,
-        class_weight=class_weight)
+for kernel in kernels:
+    for test_size in test_sizes:
+        for class_weight in class_weights:
+            for over in oversampling:
+                for under in undersampling:
+                    print('------------------------------------------')
+                    print(f'oversample: {over}, undersample {under}')
+                    if (under < over) & (under > 0.0):
+                        print('Skip this loop: oversample > undersample')
+                        continue
+                    X, y = random_sample(data, truth, over, under)
+                    label = '_'.join((color_set, kernel, f'over-{over}',
+                                      f'under-{under}'))
+                    run_svm(X, y, label, noise, feature_names, kernel=kernel,
+                            class_weight=class_weight, test_size=test_size)

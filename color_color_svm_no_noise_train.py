@@ -3,8 +3,12 @@ import os
 
 import numpy as np
 import h5py
+import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+from imblearn.over_sampling import RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler
 
 from sklearn import metrics
 from sklearn import svm
@@ -78,8 +82,40 @@ def get_mask(filter_list, flux_threshold, path):
     return keep
 
 
+def random_sample(data, truth, oversample=0.0, undersample=0.0,
+                  shrinkage=None):
+
+    """
+    randomly over or undersample *exact* data points
+    please note that oversampling takes place first
+    oversample: desired fraction of  minority / majority samples
+    undersample: desired fraction of  minority / majority samples
+    shrinkage: dispersion factor for oversampling (smoothed bootstrap)
+    """
+
+    print(f'Before: passive frac {np.sum(truth)/len(truth)}')
+    
+    if (undersample < oversample) & (undersample > 0.0):
+        print('Error: oversample > undersample')
+        return
+
+    if oversample > 0.0:
+        over = RandomOverSampler(sampling_strategy=oversample,
+                                 shrinkage=shrinkage)
+        data, truth = over.fit_resample(data, truth)
+
+    if undersample > 0.0:
+        under = RandomUnderSampler(sampling_strategy=undersample)
+        data, truth = under.fit_resample(data, truth)
+
+    print(f'After: passive frac {np.sum(truth)/len(truth)}')
+    print(f'{len(truth)} galaxies, {np.sum(truth)} passive')
+
+    return data, truth
+
+
 def run_svm(data, truth, label, noise, feature_names, kernel='linear',
-            class_weight=None):
+            class_weight=None, test_size=0.3):
 
     print("Got data with shapes", data.shape, truth.shape)
 
@@ -87,7 +123,7 @@ def run_svm(data, truth, label, noise, feature_names, kernel='linear',
 
     # Split into training and validation
     X_train, X_test, y_train, y_test = train_test_split(data, truth,
-                                                        test_size=0.3,
+                                                        test_size=test_size,
                                                         random_state=42)
 
     # Initialise the model
@@ -109,8 +145,18 @@ def run_svm(data, truth, label, noise, feature_names, kernel='linear',
         y_pred = clf.predict(X_test)
 
         acc = metrics.accuracy_score(y_test, y_pred) * 100
-        print("Passive galaxy? with %.1f noise std Accuracy: %.3f"
-              % (n, acc) + "%")
+        prec = metrics.precision_score(y_test, y_pred) * 100
+        recall = metrics.recall_score(y_test, y_pred) * 100
+        print(f"Ran SVM with {n:.1f} noise std \
+        Accuracy: {acc:.3f}% Precision: {prec:.3f}% Recall: {recall:.3f}%")
+
+        # Save scores in a dictionary
+        with open('scores/passive_classifier_scores.pkl', 'rb') as f:
+            scores_dict = pickle.load(f)
+        scores_dict[label] = {'accuracy': acc, 'precision': prec,
+                              'recall': recall}
+        with open('scores/passive_classifier_scores.pkl', 'wb') as new_f:
+            pickle.dump(scores_dict, new_f)
 
         cf_matrix = metrics.confusion_matrix(y_test, y_pred)
 
@@ -129,13 +175,15 @@ def run_svm(data, truth, label, noise, feature_names, kernel='linear',
                 transform=ax.transAxes, horizontalalignment='right',
                 fontsize=8)
 
-        plt.savefig("figures/passive_gal_classifier_%s_noise-%.1f.png"
+        plt.savefig("figures/random_sample/passive_gal_classifier_%s_noise-%.1f.png"
                     % (label, n), bbox_inches="tight", dpi=300)
 
         plt.close()
 
     # =============== Plot feature importance ========================
 
+    if kernel!='linear': return
+    
     imp = np.array(clf.coef_[0])
     names = feature_names
     imp, names = zip(*sorted(zip(imp,names)))
@@ -187,7 +235,7 @@ def run_svm(data, truth, label, noise, feature_names, kernel='linear',
 
 # EXAMPLE CODE -------------------------------------------------------
 
-    
+
 # Define filepath
 #path = "Euclid.h5"
 
